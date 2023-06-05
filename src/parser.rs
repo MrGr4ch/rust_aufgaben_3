@@ -4,10 +4,27 @@ use std::ops::{Deref, DerefMut};
 
 pub struct C1Parser<'a>(C1Lexer<'a>);
 
+type ParseResult<T> = Result<T, String>;
+
 impl<'a> C1Parser<'a> {
-    pub fn parse(text: &str) -> ParseResult {
-        let mut parser = Self::initialize_parser(text);
-        parser.program()
+     pub fn new(lexer: C1Lexer<'a>) -> Self {
+        C1Parser(lexer)
+    }
+    
+    pub fn parse(&mut self) -> ParseResult<()> {
+        while let Some(token) = self.current_token() {
+            match token {
+                C1Token::KwPrintf => self.parse_printf_statement()?,
+                _ => {
+                    return Err(format!(
+                        "Unexpected token {:?} at position {}",
+                        token,
+                        token.position()
+                    ));
+                }
+            }
+        }
+        Ok(())
     }
 
     fn initialize_parser(text: &str) -> C1Parser {
@@ -33,10 +50,10 @@ impl<'a> C1Parser<'a> {
     /// Check whether the current token is equal to the given token. If yes, consume it, otherwise
     /// return an error with the given error message
     
-    fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
+    fn expect_token(&mut self, expected_token: C1Token) -> ParseResult<()> {
         let token = self.next_token()?;
-        if token == *expected_token {
-            Ok(token)
+        if token == expected_token {
+            Ok(())
         } else {
             Err(format!(
                 "Expected {:?}, found {:?}",
@@ -215,6 +232,14 @@ impl<'a> C1Parser<'a> {
         }
         Ok(())
     }
+    
+    fn parse_printf_statement(&mut self) -> ParseResult<()> {
+        self.expect_token(C1Token::KwPrintf)?;
+        self.expect_token(C1Token::LeftParenthesis)?;
+        self.assignment()?;
+        self.expect_token(C1Token::RightParenthesis)?;
+        Ok(())
+    }
 
     fn printf(&mut self) -> ParseResult {
         self.expect_token(&C1Token::KwPrintf)?;
@@ -238,15 +263,15 @@ impl<'a> C1Parser<'a> {
 
     /// Check whether the given token matches the current token
     fn current_matches(&self, token: &C1Token) -> bool {
-        match &self.current_token() {
+        match self.current_token() {
             None => false,
             Some(current) => current == token,
         }
     }
-
+    
     /// Check whether the given token matches the next token
     fn next_matches(&self, token: &C1Token) -> bool {
-        match &self.peek_token() {
+        match self.peek_token() {
             None => false,
             Some(next) => next == token,
         }
@@ -279,17 +304,30 @@ impl<'a> C1Parser<'a> {
 
     /// Consume the current token and move to the next token
     fn eat(&mut self) {
-        self.tokens.next();
+        self.0.next();
     }
 
     /// Get the current token
     fn current_token(&self) -> Option<&C1Token> {
-        self.tokens.current_token()
+        self.0.current_token()
     }
 
     /// Get the next token without consuming it
     fn peek_token(&self) -> Option<&C1Token> {
         self.tokens.peek_token()
+    }
+    
+    fn next_token(&mut self) -> ParseResult<C1Token> {
+        self.0.next().ok_or("Unexpected end of input".to_string())
+    }
+
+    fn peek_token(&self) -> Option<&C1Token> {
+        self.0.peek_token()
+    }
+
+    fn assignment(&mut self) -> ParseResult<()> {
+        // Placeholder implementation
+        Ok(())
     }
 }
 
