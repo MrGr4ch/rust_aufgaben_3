@@ -30,6 +30,9 @@ impl<'a> C1Parser<'a> {
         }
     }
 
+    /// Check whether the current token is equal to the given token. If yes, consume it, otherwise
+    /// return an error with the given error message
+    
     fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
         let token = self.next_token()?;
         if token == *expected_token {
@@ -222,20 +225,6 @@ impl<'a> C1Parser<'a> {
     }
 
     // Helper methods
-
-    /// Check whether the current token is equal to the given token. If yes, consume it, otherwise
-    /// return an error with the given error message
-    fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult<C1Token> {
-        let token = self.next_token()?;
-        if token == *expected_token {
-            Ok(token)
-        } else {
-            Err(format!(
-                "Expected {:?}, found {:?}",
-                expected_token, token
-            ))
-        }
-    }
 
     /// For each token in the given slice, check whether the token is equal to the current token,
     /// consume the current token, and check the next token in the slice against the next token
