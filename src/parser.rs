@@ -1,176 +1,157 @@
 use crate::lexer::{C1Lexer, C1Token};
 use crate::ParseResult;
-use std::ops::{Deref, DerefMut};
-use std::string::ParseError;
-
 
 pub struct C1Parser<'a>(C1Lexer<'a>);
-// Implement Deref and DerefMut to enable the direct use of the lexer's methods
-impl<'a> Deref for C1Parser<'a> {
-   type Target = C1Lexer<'a>;
-
-     fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<'a> DerefMut for C1Parser<'a> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-       &mut self.0
-    }
-}
 
 impl<'a> C1Parser<'a> {
     pub fn parse(text: &str) -> ParseResult {
-      let mut parser = Self::initialize_parser(text);
-      parser.program()
+        let mut parser = Self::initialize_parser(text);
+        parser.program()
     }
 
     fn initialize_parser(text: &str) -> C1Parser {
         C1Parser(C1Lexer::new(text))
-   }
-   
-   fn type_(&mut self) -> ParseResult {
-       match self.current_token() {
-           Some(token) => {
-               match token.token_type {
-                   C1Token::KwBoolean
-                   | C1Token::KwFloat
-                   | C1Token::KwInt
-                   | C1Token::KwVoid => {
-                       self.eat();
-                       Ok(())
-                   }
-                   _ => Err(format!("Expected type, found {:?}", token)),
-               }
-           }
-           None => Err("Unexpected end of input".to_string()),
-       }
-   }
-   
-fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
-    let token = self.next_token()?;
-    if token == *expected_token {
-        Ok(token)
-    } else {
-        Err(ParseError::new(
-            format!("Expected {:?}, found {:?}", expected_token, token),
-            token.position,
-        ))
     }
-}
-      
-fn next_token(&mut self) -> ParseResult {
-    let next_token = self.tokens.next();
-    Ok(next_token)
-}
 
-fn assignment(&mut self) -> ParseResult {
-    if self.current_matches(&C1Token::Identifier) {
-        self.expect_token(&C1Token::Identifier)?;
-        self.expect_token(&C1Token::Assign)?;
-        self.assignment()?;
-    } else {
-        self.expr()?;
+    fn type_(&mut self) -> ParseResult {
+        match self.current_token() {
+            Some(token) => match token.token_type {
+                C1Token::KwBoolean
+                | C1Token::KwFloat
+                | C1Token::KwInt
+                | C1Token::KwVoid => {
+                    self.eat();
+                    Ok(())
+                }
+                _ => Err(format!("Expected type, found {:?}", token)),
+            },
+            None => Err("Unexpected end of input".to_string()),
+        }
     }
-    Ok(())
-}
 
-fn expr(&mut self) -> ParseResult {
-    self.simpexpr()?;
-    if let Some(token) = self.current_token() {
-        if token == &C1Token::Equal
-            || token == &C1Token::NotEqual
-            || token == &C1Token::LessEqual
-            || token == &C1Token::GreaterEqual
-            || token == &C1Token::Less
-            || token == &C1Token::Greater
+    fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
+        let token = self.next_token()?;
+        if token == *expected_token {
+            Ok(token)
+        } else {
+            Err(format!(
+                "Expected {:?}, found {:?}",
+                expected_token, token
+            ))
+        }
+    }
+
+    fn next_token(&mut self) -> ParseResult<C1Token> {
+        let next_token = self.tokens.next();
+        Ok(next_token)
+    }
+
+    fn assignment(&mut self) -> ParseResult {
+        if self.current_matches(&C1Token::Identifier) {
+            self.expect_token(&C1Token::Identifier)?;
+            self.expect_token(&C1Token::Assign)?;
+            self.assignment()?;
+        } else {
+            self.expr()?;
+        }
+        Ok(())
+    }
+
+    fn expr(&mut self) -> ParseResult {
+        self.simpexpr()?;
+        if let Some(token) = self.current_token() {
+            if token == &C1Token::Equal
+                || token == &C1Token::NotEqual
+                || token == &C1Token::LessEqual
+                || token == &C1Token::GreaterEqual
+                || token == &C1Token::Less
+                || token == &C1Token::Greater
+            {
+                self.eat();
+                self.simpexpr()?;
+            }
+        }
+        Ok(())
+    }
+
+    fn simpexpr(&mut self) -> ParseResult {
+        if self.current_token().is_some() && self.current_token() == &C1Token::Minus {
+            self.eat();
+        }
+        self.term()?;
+        while let Some(token) = self.current_token() {
+            if token == &C1Token::Plus || token == &C1Token::Minus || token == &C1Token::Or {
+                self.eat();
+                self.term()?;
+            } else {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn term(&mut self) -> ParseResult {
+        self.factor()?;
+        while let Some(token) = self.current_token() {
+            if token == &C1Token::Asterisk || token == &C1Token::Slash || token == &C1Token::And {
+                self.eat();
+                self.factor()?;
+            } else {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn factor(&mut self) -> ParseResult {
+        if self.current_matches(&C1Token::ConstInt)
+            || self.current_matches(&C1Token::ConstFloat)
+            || self.current_matches(&C1Token::ConstBoolean)
         {
             self.eat();
-            self.simpexpr()?;
-        }
-    }
-    Ok(())
-}
-
-fn simpexpr(&mut self) -> ParseResult {
-    if self.current_token().is_some() && self.current_token() == &C1Token::Minus {
-        self.eat();
-    }
-    self.term()?;
-    while let Some(token) = self.current_token() {
-        if token == &C1Token::Plus || token == &C1Token::Minus || token == &C1Token::Or {
+        } else if self.current_matches(&C1Token::Identifier) {
             self.eat();
-            self.term()?;
-        } else {
-            break;
-        }
-    }
-    Ok(())
-}
-
-fn term(&mut self) -> ParseResult {
-    self.factor()?;
-    while let Some(token) = self.current_token() {
-        if token == &C1Token::Asterisk || token == &C1Token::Slash || token == &C1Token::And {
-            self.eat();
-            self.factor()?;
-        } else {
-            break;
-        }
-    }
-    Ok(())
-}
-
-fn factor(&mut self) -> ParseResult {
-    if self.current_matches(&C1Token::ConstInt)
-        || self.current_matches(&C1Token::ConstFloat)
-        || self.current_matches(&C1Token::ConstBoolean)
-    {
-        self.eat();
-    } else if self.current_matches(&C1Token::Identifier) {
-        self.eat();
-        if self.current_matches(&C1Token::LeftParenthesis) {
+            if self.current_matches(&C1Token::LeftParenthesis) {
+                self.expect_token(&C1Token::LeftParenthesis)?;
+                self.expect_token(&C1Token::RightParenthesis)?;
+            }
+        } else if self.current_matches(&C1Token::LeftParenthesis) {
             self.expect_token(&C1Token::LeftParenthesis)?;
+            self.assignment()?;
             self.expect_token(&C1Token::RightParenthesis)?;
+        } else {
+            return Err(format!("Unexpected token: {:?}", self.current_token()));
         }
-    } else if self.current_matches(&C1Token::LeftParenthesis) {
-        self.expect_token(&C1Token::LeftParenthesis)?;
-        self.assignment()?;
-        self.expect_token(&C1Token::RightParenthesis)?;
-    } else {
-        return Err(format!("Unexpected token: {:?}", self.current_token()));
+        Ok(())
     }
-    Ok(())
-}   
-   
-fn program(&mut self) -> ParseResult {
-    while self.current_token().is_some() {
-        self.functiondefinition()?;
-    }
-    self.expect_token(&C1Token::EOF)?;
-    Ok(())
-}      
-      
-fn functiondefinition(&mut self) -> ParseResult {
-    self.type_()?;
-    self.expect_token(&C1Token::Identifier)?;
-    self.expect_token(&C1Token::LeftParenthesis)?;
-    self.expect_token(&C1Token::RightParenthesis)?;
-    self.expect_token(&C1Token::LeftBrace)?;
-    self.statementlist()?;
-    self.expect_token(&C1Token::RightBrace)?;
-    Ok(())
-}
 
- fn statassignment(&mut self) -> ParseResult {
+    fn program(&mut self) -> ParseResult {
+        while self.current_token().is_some() {
+            self.function_definition()?;
+        }
+        self.expect_token(&C1Token::EOF)?;
+        Ok(())
+    }
+
+    fn function_definition(&mut self) -> ParseResult {
+        self.type_()?;
+        self.expect_token(&C1Token::Identifier)?;
+        self.expect_token(&C1Token::LeftParenthesis)?;
+        self.expect_token(&C1Token::RightParenthesis)?;
+        self.expect_token(&C1Token::LeftBrace)?;
+        self.statement_list()?;
+        self.expect_token(&C1Token::RightBrace)?;
+        Ok(())
+    }
+
+    fn statement_assignment(&mut self) -> ParseResult {
         self.expect_token(&C1Token::Identifier)?;
         self.expect_token(&C1Token::Assign)?;
         self.assignment()?;
         Ok(())
     }
 
-    fn functioncall(&mut self) -> ParseResult {
+    fn function_call(&mut self) -> ParseResult {
         self.expect_token(&C1Token::Identifier)?;
         self.expect_token(&C1Token::LeftParenthesis)?;
         self.expect_token(&C1Token::RightParenthesis)?;
@@ -179,147 +160,160 @@ fn functiondefinition(&mut self) -> ParseResult {
 
     fn block(&mut self) -> ParseResult {
         self.expect_token(&C1Token::LeftBrace)?;
-        self.statementlist()?;
+        self.statement_list()?;
         self.expect_token(&C1Token::RightBrace)?;
         Ok(())
-    }      
-      
-fn statementlist(&mut self) -> ParseResult {
-    self.statement()?;
-    if self.current_token().is_some() {
-        self.statementlist()?;
     }
-    Ok(())
-}
 
-fn statement(&mut self) -> ParseResult {
-    if self.current_matches(&C1Token::KwIf) {
-        self.ifstatement()?;
-    } else if self.current_matches(&C1Token::KwReturn) {
-        self.returnstatement()?;
-    } else if self.current_matches(&C1Token::KwPrintf) {
-        self.printf()?;
-    } else if self.current_matches(&C1Token::Identifier) {
-        if self.next_matches(&C1Token::Assign) {
-            self.statassignment()?;
+    fn statement_list(&mut self) -> ParseResult {
+        self.statement()?;
+        if self.current_token().is_some() {
+            self.statement_list()?;
+        }
+        Ok(())
+    }
+
+    fn statement(&mut self) -> ParseResult {
+        if self.current_matches(&C1Token::KwIf) {
+            self.if_statement()?;
+        } else if self.current_matches(&C1Token::KwReturn) {
+            self.return_statement()?;
+        } else if self.current_matches(&C1Token::KwPrintf) {
+            self.printf()?;
+        } else if self.current_matches(&C1Token::Identifier) {
+            if self.next_matches(&C1Token::Assign) {
+                self.statement_assignment()?;
+            } else {
+                self.function_call()?;
+            }
+        } else if self.current_matches(&C1Token::LeftBrace) {
+            self.block()?;
         } else {
-            self.functioncall()?;
+            return Err(format!("Unexpected token: {:?}", self.current_token()));
         }
-    } else if self.current_matches(&C1Token::LeftBrace) {
-        self.block()?;
-    } else {
-        return Err(format!("Unexpected token: {:?}", self.current_token()));
+        self.expect_token(&C1Token::Semicolon)?;
+        Ok(())
     }
-    self.expect_token(&C1Token::Semicolon)?;
-    Ok(())
-}
 
-fn ifstatement(&mut self) -> ParseResult {
-    self.expect_token(&C1Token::KwIf)?;
-    self.expect_token(&C1Token::LeftParenthesis)?;
-    self.assignment()?;
-    self.expect_token(&C1Token::RightParenthesis)?;
-    self.block()?;
-    Ok(())
-}
-
-fn returnstatement(&mut self) -> ParseResult {
-    self.expect_token(&C1Token::KwReturn)?;
-    if !self.current_matches(&C1Token::Semicolon) {
+    fn if_statement(&mut self) -> ParseResult {
+        self.expect_token(&C1Token::KwIf)?;
+        self.expect_token(&C1Token::LeftParenthesis)?;
         self.assignment()?;
-    }
-    Ok(())
-}
-
-fn printf(&mut self) -> ParseResult {
-    self.expect_token(&C1Token::KwPrintf)?;
-    self.expect_token(&C1Token::LeftParenthesis)?;
-    self.assignment()?;
-    self.expect_token(&C1Token::RightParenthesis)?;
-    Ok(())
-}
-
-/// Check whether the current token is equal to the given token. If yes, consume it, otherwise
-/// return an error with the given error message
-fn check_and_eat_token(&mut self, token: &C1Token, error_message: &str) -> ParseResult {
-    if self.current_matches(token) {
-        self.eat();
+        self.expect_token(&C1Token::RightParenthesis)?;
+        self.block()?;
         Ok(())
-    } else {
-        Err(String::from(error_message))
     }
-}
 
-/// For each token in the given slice, check whether the token is equal to the current token,
-/// consume the current token, and check the next token in the slice against the next token
-/// provided by the lexer.
-fn check_and_eat_tokens(&mut self, token: &[C1Token], error_message: &str) -> ParseResult {
-    match token
-        .iter()
-        .map(|t| self.check_and_eat_token(t, error_message))
-        .filter(ParseResult::is_err)
-        .last()
-    {
-        None => Ok(()),
-        Some(err) => err,
-    }
-}
-
-/// Check whether the given token matches the current token
-fn current_matches(&self, token: &C1Token) -> bool {
-    match &self.current_token() {
-        None => false,
-        Some(current) => current == token,
-    }
-}
-
-/// Check whether the given token matches the next token
-fn next_matches(&self, token: &C1Token) -> bool {
-    match &self.peek_token() {
-        None => false,
-        Some(next) => next == token,
-    }
-}
-
-/// Check whether any of the tokens matches the current token.
-fn any_match_current(&self, token: &[C1Token]) -> bool {
-    token.iter().any(|t| self.current_matches(t))
-}
-
-/// Check whether any of the tokens matches the current token, then consume it
-fn any_match_and_eat(&mut self, token: &[C1Token], error_message: &String) -> ParseResult {
-    if token
-        .iter()
-        .any(|t| self.check_and_eat_token(t, "").is_ok())
-    {
-        Ok(())
-    } else {
-        Err(String::from(error_message))
-    }
-}
-
-fn error_message_current(&self, reason: &'static str) -> String {
-    match self.current_token() {
-        None => format!("{}. Reached EOF", reason),
-        Some(_) => format!(
-            "{} at line {:?} with text: '{}'",
-            reason,
-            self.current_line_number().unwrap(),
-            self.current_text().unwrap()
-        ),
-    }
-}
-
-fn error_message_peek(&mut self, reason: &'static str) -> String {
-    match self.peek_token() {
-       None => format!("{}. Reached EOF", reason),
-        Some(_) => format!(
-           "{} at line {:?} with text: '{}'",
-           reason,
-            self.peek_line_number().unwrap(),
-            self.peek_text().unwrap()
-        ),
+    fn return_statement(&mut self) -> ParseResult {
+        self.expect_token(&C1Token::KwReturn)?;
+        if !self.current_matches(&C1Token::Semicolon) {
+            self.assignment()?;
         }
+        Ok(())
+    }
+
+    fn printf(&mut self) -> ParseResult {
+        self.expect_token(&C1Token::KwPrintf)?;
+        self.expect_token(&C1Token::LeftParenthesis)?;
+        self.assignment()?;
+        self.expect_token(&C1Token::RightParenthesis)?;
+        Ok(())
+    }
+
+    // Helper methods
+
+    /// Check whether the current token is equal to the given token. If yes, consume it, otherwise
+    /// return an error with the given error message
+    fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult<C1Token> {
+        let token = self.next_token()?;
+        if token == *expected_token {
+            Ok(token)
+        } else {
+            Err(format!(
+                "Expected {:?}, found {:?}",
+                expected_token, token
+            ))
+        }
+    }
+
+    /// For each token in the given slice, check whether the token is equal to the current token,
+    /// consume the current token, and check the next token in the slice against the next token
+    /// provided by the lexer.
+    fn expect_tokens(&mut self, tokens: &[C1Token]) -> ParseResult {
+        for token in tokens {
+            self.expect_token(token)?;
+        }
+        Ok(())
+    }
+
+    /// Check whether the given token matches the current token
+    fn current_matches(&self, token: &C1Token) -> bool {
+        match &self.current_token() {
+            None => false,
+            Some(current) => current == token,
+        }
+    }
+
+    /// Check whether the given token matches the next token
+    fn next_matches(&self, token: &C1Token) -> bool {
+        match &self.peek_token() {
+            None => false,
+            Some(next) => next == token,
+        }
+    }
+
+    /// Check whether any of the tokens matches the current token.
+    fn any_match_current(&self, tokens: &[C1Token]) -> bool {
+        tokens.iter().any(|token| self.current_matches(token))
+    }
+
+    /// Check whether any of the tokens matches the current token, then consume it
+    fn any_match_and_eat(&mut self, tokens: &[C1Token], error_message: &str) -> ParseResult {
+        if tokens.iter().any(|token| self.check_and_eat_token(token, "").is_ok()) {
+            Ok(())
+        } else {
+            Err(String::from(error_message))
+        }
+    }
+
+    /// Check whether the current token is equal to the given token. If yes, consume it, otherwise
+    /// return an error with the given error message
+    fn check_and_eat_token(&mut self, token: &C1Token, error_message: &str) -> ParseResult {
+        if self.current_matches(token) {
+            self.eat();
+            Ok(())
+        } else {
+            Err(String::from(error_message))
+        }
+    }
+
+    /// Consume the current token and move to the next token
+    fn eat(&mut self) {
+        self.tokens.next();
+    }
+
+    /// Get the current token
+    fn current_token(&self) -> Option<&C1Token> {
+        self.tokens.current_token()
+    }
+
+    /// Get the next token without consuming it
+    fn peek_token(&self) -> Option<&C1Token> {
+        self.tokens.peek_token()
+    }
+}
+
+impl<'a> Deref for C1Parser<'a> {
+    type Target = C1Lexer<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<'a> DerefMut for C1Parser<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
