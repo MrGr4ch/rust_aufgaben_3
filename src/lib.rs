@@ -10,3 +10,5 @@ pub use lexer::C1Token;
 // You will need a re-export of your C1Parser definition. Here is an example:
 // mod parser;
 // pub use parser::C1Parser;
+
+mod c1_parser;
