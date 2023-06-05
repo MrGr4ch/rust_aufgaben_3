@@ -31,7 +31,7 @@ impl<'a> C1Parser<'a> {
         C1Parser(C1Lexer::new(text))
     }
 
-    fn type_(&mut self) -> ParseResult {
+    fn type_(&mut self) -> ParseResult<u32> {
         match self.current_token() {
             Some(token) => match token.token_type {
                 C1Token::KwBoolean
