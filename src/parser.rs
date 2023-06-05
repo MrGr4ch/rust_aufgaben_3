@@ -29,7 +29,7 @@
 //     }
 //
 //     /// program ::= ( functiondefinition )* <EOF>
-//      fn program(&mut self) -> ParseResult {
+    fn program(&mut self) -> ParseResult {
         while self.current_token().is_some() {
             self.functiondefinition()?;
         }
