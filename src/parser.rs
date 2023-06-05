@@ -45,8 +45,7 @@ impl<'a> C1Parser<'a> {
            None => Err("Unexpected end of input".to_string()),
        }
    }
-/// program ::= ( functiondefinition )* <EOF>
-
+   
 fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
     let token = self.next_token()?;
     if token == *expected_token {
