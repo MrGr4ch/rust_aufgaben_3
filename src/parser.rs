@@ -1,5 +1,4 @@
 use crate::lexer::{C1Lexer, C1Token};
-use crate::ParseResult;
 use std::ops::{Deref, DerefMut};
 
 pub struct C1Parser<'a>(C1Lexer<'a>);
