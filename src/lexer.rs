@@ -138,6 +138,19 @@ pub enum C1Token {
     // it can be named anything you wish.
     #[error]
     Error,
+    
+    Assignment,
+    EqualEqual,
+    NotEqual,
+    LessThanOrEqual,
+    GreaterThanOrEqual,
+    LessThan,
+    GreaterThan,
+    OrOr,
+    Multiply,
+    Divide,
+    AndAnd,
+    EOF,
 }
 
 /// # Overview
