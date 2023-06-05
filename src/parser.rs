@@ -59,13 +59,9 @@ fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
     }
 }
       
-fn next_token(&mut self) -> Option<C1Token> {
+fn next_token(&mut self) -> ParseResult<Option<C1Token>> {
     let next_token = self.tokens.next();
-    if next_token.is_none() {
-        Some(C1Token::EOF)
-    } else {
-        next_token
-    }
+    Ok(next_token)
 }
 
 fn assignment(&mut self) -> ParseResult {
