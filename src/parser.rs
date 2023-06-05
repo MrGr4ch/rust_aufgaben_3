@@ -29,6 +29,18 @@
 //     }
 //
 //     /// program ::= ( functiondefinition )* <EOF>
+
+    fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
+    if self.current_matches(expected_token) {
+        self.eat();
+        Ok(())
+    } else {
+        let error_message = format!("Expected token {:?}, found {:?}", expected_token, self.current_token());
+        Err(error_message)
+    }
+    }
+
+
     fn program(&mut self) -> ParseResult {
         while self.current_token().is_some() {
             self.functiondefinition()?;
