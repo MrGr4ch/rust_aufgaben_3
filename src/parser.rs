@@ -324,11 +324,6 @@ impl<'a> C1Parser<'a> {
     fn peek_token(&self) -> Option<&C1Token> {
         self.0.peek_token()
     }
-
-    fn assignment(&mut self) -> ParseResult<()> {
-        // Placeholder implementation
-        Ok(())
-    }
 }
 
 impl<'a> Deref for C1Parser<'a> {
