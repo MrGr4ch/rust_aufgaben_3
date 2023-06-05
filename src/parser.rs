@@ -114,10 +114,6 @@ fn printf(&mut self) -> ParseResult {
     Ok(())
 }
 
-fn printf(&mut self) -> ParseResult {
-        self.expect_token
-      
-
 /// Check whether the current token is equal to the given token. If yes, consume it, otherwise
 /// return an error with the given error message
 fn check_and_eat_token(&mut self, token: &C1Token, error_message: &str) -> ParseResult {
