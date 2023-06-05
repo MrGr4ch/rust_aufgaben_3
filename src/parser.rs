@@ -27,6 +27,23 @@ impl<'a> C1Parser<'a> {
     fn initialize_parser(text: &str) -> C1Parser {
         C1Parser(C1Lexer::new(text))
    }
+   
+   fn type_(&mut self) -> ParseResult {
+        match self.current_token() {
+            Some(token) => {
+                match token.token_type {
+                    C1Token::KeywordBoolean
+                    | C1Token::KeywordFloat
+                    | C1Token::KeywordInt
+                    | C1Token::KeywordVoid => {
+                        self.eat();
+                        Ok(())
+                    }
+                    _ => Err(format!("Expected type, found {:?}", token)),
+                }
+            }
+            None => Err("Unexpected end of input".to_string()),
+        }
 
 /// program ::= ( functiondefinition )* <EOF>
 
@@ -125,8 +142,8 @@ fn program(&mut self) -> ParseResult {
     }
     self.expect_token(&C1Token::EOF)?;
     Ok(())
-}
-
+}      
+      
 fn functiondefinition(&mut self) -> ParseResult {
     self.type_()?;
     self.expect_token(&C1Token::Identifier)?;
@@ -138,6 +155,27 @@ fn functiondefinition(&mut self) -> ParseResult {
     Ok(())
 }
 
+ fn statassignment(&mut self) -> ParseResult {
+        self.expect_token(&C1Token::Identifier)?;
+        self.expect_token(&C1Token::Assignment)?;
+        self.assignment()?;
+        Ok(())
+    }
+
+    fn functioncall(&mut self) -> ParseResult {
+        self.expect_token(&C1Token::Identifier)?;
+        self.expect_token(&C1Token::LeftParenthesis)?;
+        self.expect_token(&C1Token::RightParenthesis)?;
+        Ok(())
+    }
+
+    fn block(&mut self) -> ParseResult {
+        self.expect_token(&C1Token::LeftBrace)?;
+        self.statementlist()?;
+        self.expect_token(&C1Token::RightBrace)?;
+        Ok(())
+    }      
+      
 fn statementlist(&mut self) -> ParseResult {
     self.statement()?;
     if self.current_token().is_some() {
