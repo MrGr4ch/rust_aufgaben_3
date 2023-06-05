@@ -45,7 +45,7 @@ impl<'a> C1Parser<'a> {
         }
     }
 
-    fn next_token(&mut self) -> ParseResult<C1Token> {
+    fn next_token(&mut self) -> ParseResult {
         let next_token = self.tokens.next();
         Ok(next_token)
     }
