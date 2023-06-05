@@ -29,22 +29,22 @@ impl<'a> C1Parser<'a> {
    }
    
    fn type_(&mut self) -> ParseResult {
-        match self.current_token() {
-            Some(token) => {
-                match token.token_type {
-                    C1Token::KeywordBoolean
-                    | C1Token::KeywordFloat
-                    | C1Token::KeywordInt
-                    | C1Token::KeywordVoid => {
-                        self.eat();
-                        Ok(())
-                    }
-                    _ => Err(format!("Expected type, found {:?}", token)),
-                }
-            }
-            None => Err("Unexpected end of input".to_string()),
-        }
-
+       match self.current_token() {
+           Some(token) => {
+               match token.token_type {
+                   C1Token::KeywordBoolean
+                   | C1Token::KeywordFloat
+                   | C1Token::KeywordInt
+                   | C1Token::KeywordVoid => {
+                       self.eat();
+                       Ok(())
+                   }
+                   _ => Err(format!("Expected type, found {:?}", token)),
+               }
+           }
+           None => Err("Unexpected end of input".to_string()),
+       }
+   }
 /// program ::= ( functiondefinition )* <EOF>
 
 fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
