@@ -1,6 +1,8 @@
 use crate::lexer::{C1Lexer, C1Token};
 use crate::ParseResult;
 use std::ops::{Deref, DerefMut};
+use std::string::ParseError;
+
 
 pub struct C1Parser<'a>(C1Lexer<'a>);
 // Implement Deref and DerefMut to enable the direct use of the lexer's methods
@@ -32,10 +34,10 @@ impl<'a> C1Parser<'a> {
        match self.current_token() {
            Some(token) => {
                match token.token_type {
-                   C1Token::KeywordBoolean
-                   | C1Token::KeywordFloat
-                   | C1Token::KeywordInt
-                   | C1Token::KeywordVoid => {
+                   C1Token::KwBoolean
+                   | C1Token::KwFloat
+                   | C1Token::KwInt
+                   | C1Token::KwVoid => {
                        self.eat();
                        Ok(())
                    }
@@ -58,7 +60,7 @@ fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
     }
 }
       
-fn next_token(&mut self) -> ParseResult<Option<C1Token>> {
+fn next_token(&mut self) -> ParseResult {
     let next_token = self.tokens.next();
     Ok(next_token)
 }
@@ -97,7 +99,7 @@ fn simpexpr(&mut self) -> ParseResult {
     }
     self.term()?;
     while let Some(token) = self.current_token() {
-        if token == &C1Token::Plus || token == &C1Token::Minus || token == &C1Token::OrOr {
+        if token == &C1Token::Plus || token == &C1Token::Minus || token == &C1Token::Or {
             self.eat();
             self.term()?;
         } else {
@@ -110,7 +112,7 @@ fn simpexpr(&mut self) -> ParseResult {
 fn term(&mut self) -> ParseResult {
     self.factor()?;
     while let Some(token) = self.current_token() {
-        if token == &C1Token::Multiply || token == &C1Token::Divide || token == &C1Token::AndAnd {
+        if token == &C1Token::Asterisk || token == &C1Token::Slash || token == &C1Token::And {
             self.eat();
             self.factor()?;
         } else {
@@ -191,11 +193,11 @@ fn statementlist(&mut self) -> ParseResult {
 }
 
 fn statement(&mut self) -> ParseResult {
-    if self.current_matches(&C1Token::KeywordIf) {
+    if self.current_matches(&C1Token::KwIf) {
         self.ifstatement()?;
-    } else if self.current_matches(&C1Token::KeywordReturn) {
+    } else if self.current_matches(&C1Token::KwReturn) {
         self.returnstatement()?;
-    } else if self.current_matches(&C1Token::KeywordPrintf) {
+    } else if self.current_matches(&C1Token::KwPrintf) {
         self.printf()?;
     } else if self.current_matches(&C1Token::Identifier) {
         if self.next_matches(&C1Token::Assign) {
@@ -213,7 +215,7 @@ fn statement(&mut self) -> ParseResult {
 }
 
 fn ifstatement(&mut self) -> ParseResult {
-    self.expect_token(&C1Token::KeywordIf)?;
+    self.expect_token(&C1Token::KwIf)?;
     self.expect_token(&C1Token::LeftParenthesis)?;
     self.assignment()?;
     self.expect_token(&C1Token::RightParenthesis)?;
@@ -222,7 +224,7 @@ fn ifstatement(&mut self) -> ParseResult {
 }
 
 fn returnstatement(&mut self) -> ParseResult {
-    self.expect_token(&C1Token::KeywordReturn)?;
+    self.expect_token(&C1Token::KwReturn)?;
     if !self.current_matches(&C1Token::Semicolon) {
         self.assignment()?;
     }
@@ -230,7 +232,7 @@ fn returnstatement(&mut self) -> ParseResult {
 }
 
 fn printf(&mut self) -> ParseResult {
-    self.expect_token(&C1Token::KeywordPrintf)?;
+    self.expect_token(&C1Token::KwPrintf)?;
     self.expect_token(&C1Token::LeftParenthesis)?;
     self.assignment()?;
     self.expect_token(&C1Token::RightParenthesis)?;
