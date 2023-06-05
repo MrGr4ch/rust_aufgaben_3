@@ -56,6 +56,15 @@ fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
         Err(error_message)
     }
 }
+      
+fn next_token(&mut self) -> Option<C1Token> {
+    let next_token = self.tokens.next();
+    if next_token.is_none() {
+        Some(C1Token::EOF)
+    } else {
+        next_token
+    }
+}
 
 fn assignment(&mut self) -> ParseResult {
     if self.current_matches(&C1Token::Identifier) {
