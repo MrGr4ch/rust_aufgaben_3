@@ -40,6 +40,85 @@ fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
     }
 }
 
+fn assignment(&mut self) -> ParseResult {
+    if self.current_matches(&C1Token::Identifier) {
+        self.expect_token(&C1Token::Identifier)?;
+        self.expect_token(&C1Token::Assignment)?;
+        self.assignment()?;
+    } else {
+        self.expr()?;
+    }
+    Ok(())
+}
+
+fn expr(&mut self) -> ParseResult {
+    self.simpexpr()?;
+    if let Some(token) = self.current_token() {
+        if token == &C1Token::EqualEqual
+            || token == &C1Token::NotEqual
+            || token == &C1Token::LessThanOrEqual
+            || token == &C1Token::GreaterThanOrEqual
+            || token == &C1Token::LessThan
+            || token == &C1Token::GreaterThan
+        {
+            self.eat();
+            self.simpexpr()?;
+        }
+    }
+    Ok(())
+}
+
+fn simpexpr(&mut self) -> ParseResult {
+    if self.current_token().is_some() && self.current_token() == &C1Token::Minus {
+        self.eat();
+    }
+    self.term()?;
+    while let Some(token) = self.current_token() {
+        if token == &C1Token::Plus || token == &C1Token::Minus || token == &C1Token::OrOr {
+            self.eat();
+            self.term()?;
+        } else {
+            break;
+        }
+    }
+    Ok(())
+}
+
+fn term(&mut self) -> ParseResult {
+    self.factor()?;
+    while let Some(token) = self.current_token() {
+        if token == &C1Token::Multiply || token == &C1Token::Divide || token == &C1Token::AndAnd {
+            self.eat();
+            self.factor()?;
+        } else {
+            break;
+        }
+    }
+    Ok(())
+}
+
+fn factor(&mut self) -> ParseResult {
+    if self.current_matches(&C1Token::ConstInt)
+        || self.current_matches(&C1Token::ConstFloat)
+        || self.current_matches(&C1Token::ConstBoolean)
+    {
+        self.eat();
+    } else if self.current_matches(&C1Token::Identifier) {
+        self.eat();
+        if self.current_matches(&C1Token::LeftParenthesis) {
+            self.expect_token(&C1Token::LeftParenthesis)?;
+            self.expect_token(&C1Token::RightParenthesis)?;
+        }
+    } else if self.current_matches(&C1Token::LeftParenthesis) {
+        self.expect_token(&C1Token::LeftParenthesis)?;
+        self.assignment()?;
+        self.expect_token(&C1Token::RightParenthesis)?;
+    } else {
+        return Err(format!("Unexpected token: {:?}", self.current_token()));
+    }
+    Ok(())
+}   
+   
 fn program(&mut self) -> ParseResult {
     while self.current_token().is_some() {
         self.functiondefinition()?;
