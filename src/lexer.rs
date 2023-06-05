@@ -139,18 +139,6 @@ pub enum C1Token {
     #[error]
     Error,
     
-    Assignment,
-    EqualEqual,
-    NotEqual,
-    LessThanOrEqual,
-    GreaterThanOrEqual,
-    LessThan,
-    GreaterThan,
-    OrOr,
-    Multiply,
-    Divide,
-    AndAnd,
-    EOF,
 }
 
 /// # Overview
