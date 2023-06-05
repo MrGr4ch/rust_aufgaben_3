@@ -29,11 +29,77 @@
 //     }
 //
 //     /// program ::= ( functiondefinition )* <EOF>
-//     fn program(&mut self) -> ParseResult {
-//         todo!();
-//     }
-//
-//     // TODO: implement remaining grammar
+//      fn program(&mut self) -> ParseResult {
+        while self.current_token().is_some() {
+            self.functiondefinition()?;
+        }
+        self.expect_token(&C1Token::EOF)?;
+        Ok(())
+    }
+
+    fn functiondefinition(&mut self) -> ParseResult {
+        self.type_()?;
+        self.expect_token(&C1Token::Identifier)?;
+        self.expect_token(&C1Token::LeftParenthesis)?;
+        self.expect_token(&C1Token::RightParenthesis)?;
+        self.expect_token(&C1Token::LeftBrace)?;
+        self.statementlist()?;
+        self.expect_token(&C1Token::RightBrace)?;
+        Ok(())
+    }
+
+    fn statementlist(&mut self) -> ParseResult {
+        while self.current_token().is_some() && !self.current_matches(&C1Token::RightBrace) {
+            self.statement()?;
+        }
+        Ok(())
+    }
+
+    fn statement(&mut self) -> ParseResult {
+        if self.current_matches(&C1Token::KeywordIf) {
+            self.ifstatement()?;
+        } else if self.current_matches(&C1Token::KeywordReturn) {
+            self.returnstatement()?;
+            self.expect_token(&C1Token::Semicolon)?;
+        } else if self.current_matches(&C1Token::KeywordPrintf) {
+            self.printf()?;
+            self.expect_token(&C1Token::Semicolon)?;
+        } else if self.current_matches(&C1Token::Identifier) {
+            if self.next_matches(&C1Token::Assignment) {
+                self.statassignment()?;
+                self.expect_token(&C1Token::Semicolon)?;
+            } else {
+                self.functioncall()?;
+                self.expect_token(&C1Token::Semicolon)?;
+            }
+        } else if self.current_matches(&C1Token::LeftBrace) {
+            self.block()?;
+        } else {
+            return Err(format!("Unexpected token: {:?}", self.current_token()));
+        }
+        Ok(())
+    }
+
+    fn ifstatement(&mut self) -> ParseResult {
+        self.expect_token(&C1Token::KeywordIf)?;
+        self.expect_token(&C1Token::LeftParenthesis)?;
+        self.assignment()?;
+        self.expect_token(&C1Token::RightParenthesis)?;
+        self.block()?;
+        Ok(())
+    }
+
+    fn returnstatement(&mut self) -> ParseResult {
+        self.expect_token(&C1Token::KeywordReturn)?;
+        if !self.current_matches(&C1Token::Semicolon) {
+            self.assignment()?;
+        }
+        Ok(())
+    }
+
+    fn printf(&mut self) -> ParseResult {
+        self.expect_token
+      
 //
 //     /// Check whether the current token is equal to the given token. If yes, consume it, otherwise
 //     /// return an error with the given error message
