@@ -60,7 +60,7 @@ fn expect_token(&mut self, expected_token: &C1Token) -> ParseResult {
 fn assignment(&mut self) -> ParseResult {
     if self.current_matches(&C1Token::Identifier) {
         self.expect_token(&C1Token::Identifier)?;
-        self.expect_token(&C1Token::Assignment)?;
+        self.expect_token(&C1Token::Assign)?;
         self.assignment()?;
     } else {
         self.expr()?;
@@ -71,12 +71,12 @@ fn assignment(&mut self) -> ParseResult {
 fn expr(&mut self) -> ParseResult {
     self.simpexpr()?;
     if let Some(token) = self.current_token() {
-        if token == &C1Token::EqualEqual
+        if token == &C1Token::Equal
             || token == &C1Token::NotEqual
-            || token == &C1Token::LessThanOrEqual
-            || token == &C1Token::GreaterThanOrEqual
-            || token == &C1Token::LessThan
-            || token == &C1Token::GreaterThan
+            || token == &C1Token::LessEqual
+            || token == &C1Token::GreaterEqual
+            || token == &C1Token::Less
+            || token == &C1Token::Greater
         {
             self.eat();
             self.simpexpr()?;
@@ -157,7 +157,7 @@ fn functiondefinition(&mut self) -> ParseResult {
 
  fn statassignment(&mut self) -> ParseResult {
         self.expect_token(&C1Token::Identifier)?;
-        self.expect_token(&C1Token::Assignment)?;
+        self.expect_token(&C1Token::Assign)?;
         self.assignment()?;
         Ok(())
     }
@@ -192,7 +192,7 @@ fn statement(&mut self) -> ParseResult {
     } else if self.current_matches(&C1Token::KeywordPrintf) {
         self.printf()?;
     } else if self.current_matches(&C1Token::Identifier) {
-        if self.next_matches(&C1Token::Assignment) {
+        if self.next_matches(&C1Token::Assign) {
             self.statassignment()?;
         } else {
             self.functioncall()?;
